@@ -104,7 +104,7 @@ final public class Http2Session : NSObject {
 
     }
 
-    public func write(_ frame: AbstractFrame, to writeQueue: OperationQueue) throws {
+    public func write(_ frame: AbstractFrame) throws {
         guard let outputStream = outputStream else {
             throw Http2SessionError.outputStreamNotOpen
         }
