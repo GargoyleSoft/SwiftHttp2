@@ -43,7 +43,7 @@ final public class Http2Session : NSObject {
     internal var inputStream: InputStream?
     internal var outputStream: OutputStream?
 
-    private init(host: String, port: Int = 443) throws {
+    private init(host: String, port: Int = 443, streamProperties: [Stream.PropertyKey : Any?] = [:]) throws {
         self.host = host
         self.port = port
 
@@ -55,13 +55,23 @@ final public class Http2Session : NSObject {
 
         super.init()
 
+        // Make sure security level is set.  If they sent a value, use theirs instead of ours.
+        let properties = streamProperties.merging([.socketSecurityLevelKey : StreamSocketSecurityLevel.negotiatedSSL]) {
+            current, _ in
+            current
+        }
+
         inputStream!.delegate = self
-        inputStream!.setProperty(StreamSocketSecurityLevel.negotiatedSSL, forKey: .socketSecurityLevelKey)
+        properties.forEach {
+            inputStream!.setProperty($0.value, forKey: $0.key)
+        }
         inputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         inputStream!.open()
 
         outputStream!.delegate = self
-        outputStream!.setProperty(StreamSocketSecurityLevel.negotiatedSSL, forKey: .socketSecurityLevelKey)
+        properties.forEach {
+            outputStream!.setProperty($0.value, forKey: $0.key)
+        }
         outputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         outputStream!.open()
     }
