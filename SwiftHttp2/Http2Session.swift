@@ -43,7 +43,7 @@ final public class Http2Session : NSObject {
     internal var inputStream: InputStream?
     internal var outputStream: OutputStream?
 
-    private init(host: String, port: Int = 443, streamProperties: [Stream.PropertyKey : Any?] = [:]) throws {
+    private init(host: String, port: Int = 443, streamProperties: [Stream.PropertyKey : Any?]) throws {
         self.host = host
         self.port = port
 
@@ -76,14 +76,14 @@ final public class Http2Session : NSObject {
         outputStream!.open()
     }
 
-    public class func createClient(host: String, port: Int = 443) throws -> Http2Session {
+    public class func createClient(host: String, port: Int = 443, streamProperties: [Stream.PropertyKey : Any?] = [:]) throws -> Http2Session {
         Http2StreamCache.shared.initialize(as: .client)
-        return try Http2Session(host: host, port: port)
+        return try Http2Session(host: host, port: port, streamProperties: streamProperties)
     }
 
-    public class func createServer() throws -> Http2Session {
+    public class func createServer(streamProperties: [Stream.PropertyKey : Any?] = [:]) throws -> Http2Session {
         Http2StreamCache.shared.initialize(as: .server)
-        return try Http2Session(host: "", port: 0)
+        return try Http2Session(host: "", port: 0, streamProperties: streamProperties)
     }
 
     public func disconnect(sendGoAwayFrame: Bool = true) {
