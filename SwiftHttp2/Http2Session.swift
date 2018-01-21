@@ -64,10 +64,12 @@ final public class Http2Session : NSObject {
 
 
         inputStream!.delegate = self
+        inputStream!.setProperty(StreamSocketSecurityLevel.tlSv1, forKey: .socketSecurityLevelKey)
         inputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         inputStream!.open()
 
         outputStream!.delegate = self
+        outputStream!.setProperty(StreamSocketSecurityLevel.tlSv1, forKey: .socketSecurityLevelKey)
         outputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         outputStream!.open()
     }
