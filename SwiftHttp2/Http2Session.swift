@@ -26,12 +26,14 @@ enum Http2SessionError : Error {
     case outputStreamNotOpen
 }
 
+// https://developer.apple.com/library/content/technotes/tn2232/_index.html
+
 // https://github.com/nathanborror/swift-http2/blob/master/Sources/Http2.swift
 final public class Http2Session : NSObject {
     private static let connectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".toUInt8Array()
 
     private let host: String
-    private let port: UInt32
+    private let port: Int
     private let writeQueue: OperationQueue
 
     private let runLoop = RunLoop()
@@ -41,7 +43,7 @@ final public class Http2Session : NSObject {
     internal var inputStream: InputStream?
     internal var outputStream: OutputStream?
 
-    private init(host: String, port: UInt32 = 443) throws {
+    private init(host: String, port: Int = 443) throws {
         self.host = host
         self.port = port
 
@@ -49,31 +51,33 @@ final public class Http2Session : NSObject {
         writeQueue.qualityOfService = .userInitiated
         writeQueue.isSuspended = true
 
-        var readStream: Unmanaged<CFReadStream>?
-        var writeStream: Unmanaged<CFWriteStream>?
+//        var readStream: Unmanaged<CFReadStream>?
+//        var writeStream: Unmanaged<CFWriteStream>?
 
-        CFStreamCreatePairWithSocketToHost(nil, host as CFString, port, &readStream, &writeStream)
+        Stream.getStreamsToHost(withName: host, port: port, inputStream: &inputStream, outputStream: &outputStream)
 
-        guard let r = readStream else { throw Http2SessionError.readStreamCreateFailed }
-        guard let w = writeStream else { throw Http2SessionError.writeStreamCreateFailed }
+//        CFStreamCreatePairWithSocketToHost(nil, host as CFString, port, &readStream, &writeStream)
+//
+//        guard let r = readStream else { throw Http2SessionError.readStreamCreateFailed }
+//        guard let w = writeStream else { throw Http2SessionError.writeStreamCreateFailed }
 
-        inputStream = r.takeRetainedValue()
-        outputStream = w.takeRetainedValue()
+//        inputStream = r.takeRetainedValue()
+//        outputStream = w.takeRetainedValue()
 
         super.init()
 
         inputStream!.delegate = self
-        inputStream!.setProperty(StreamSocketSecurityLevel.tlSv1.rawValue, forKey: .socketSecurityLevelKey)
+        inputStream!.setProperty(StreamSocketSecurityLevel.tlSv1, forKey: .socketSecurityLevelKey)
         inputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         inputStream!.open()
 
         outputStream!.delegate = self
-        outputStream!.setProperty(StreamSocketSecurityLevel.tlSv1.rawValue, forKey: .socketSecurityLevelKey)
+        outputStream!.setProperty(StreamSocketSecurityLevel.tlSv1, forKey: .socketSecurityLevelKey)
         outputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         outputStream!.open()
     }
 
-    public class func createClient(host: String, port: UInt32 = 443) throws -> Http2Session {
+    public class func createClient(host: String, port: Int = 443) throws -> Http2Session {
         Http2StreamCache.shared.initialize(as: .client)
         return try Http2Session(host: host, port: port)
     }
