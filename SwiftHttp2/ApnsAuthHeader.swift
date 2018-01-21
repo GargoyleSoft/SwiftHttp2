@@ -41,9 +41,10 @@ final class ApnsAuthHeader {
             throw ApnsAuthHeaderError.keyPathNotReadable
         }
 
+        defer { fclose(fp) }
+
         var privateKey = EVP_PKEY_new()
         PEM_read_PrivateKey(fp, &privateKey, nil, nil)
-        fclose(fp)
 
         let mdctx = EVP_MD_CTX_create()
         defer { EVP_MD_CTX_destroy(mdctx) }

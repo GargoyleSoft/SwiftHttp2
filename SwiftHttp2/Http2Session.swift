@@ -34,6 +34,8 @@ final public class Http2Session : NSObject {
     private let port: UInt32
     private let writeQueue: OperationQueue
 
+    private let runLoop = RunLoop()
+
     private var unprocessedBytes: [UInt8] = []
 
     internal var inputStream: InputStream?
@@ -45,6 +47,7 @@ final public class Http2Session : NSObject {
 
         writeQueue = OperationQueue()
         writeQueue.qualityOfService = .userInitiated
+        writeQueue.isSuspended = true
 
         var readStream: Unmanaged<CFReadStream>?
         var writeStream: Unmanaged<CFWriteStream>?
@@ -58,6 +61,7 @@ final public class Http2Session : NSObject {
         outputStream = w.takeRetainedValue()
 
         super.init()
+
 
         inputStream!.delegate = self
         inputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
@@ -139,28 +143,18 @@ final public class Http2Session : NSObject {
 
 extension Http2Session :  StreamDelegate {
     public func stream(_ aStream: Stream, handle eventCode: Stream.Event) {
-        // According to Quinn, we'll never get more than one event, so handle as a switch
+        // According to Quinn, we'll never get more than one event at a time.
         // https://forums.developer.apple.com/thread/95632
-        switch (eventCode) {
-        case .endEncountered:
+        if eventCode.isSubset(of: [.endEncountered, .errorOccurred]) {
             disconnect(sendGoAwayFrame: false)
-
-        case .errorOccurred:
-            disconnect(sendGoAwayFrame: false)
-
-        case .hasBytesAvailable:
+        } else if eventCode.contains(.hasBytesAvailable) {
             guard aStream == inputStream else { return }
             read()
-
-        case .hasSpaceAvailable:
-            break
-
-        case .openCompleted:
+        } else if eventCode.contains(.openCompleted) {
             guard aStream == outputStream else { return }
             outputStream!.write(Http2Session.connectionPreface, maxLength: Http2Session.connectionPreface.count)
 
-        default:
-            return
+            writeQueue.isSuspended = false
         }
     }
 }
