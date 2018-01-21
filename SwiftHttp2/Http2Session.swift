@@ -62,6 +62,7 @@ final public class Http2Session : NSObject {
 
         inputStream!.delegate = self
         properties.forEach {
+            print("Setting \($0.key) to \($0.value)")
             inputStream!.setProperty($0.value, forKey: $0.key)
         }
         inputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
