@@ -13,7 +13,7 @@ public struct Http2HeaderEntry {
     var value: String
     var indexing: Http2HeaderFieldIndexType?
 
-    init(field: String, value: String = "", indexing: Http2HeaderFieldIndexType? = nil) {
+    public init(field: String, value: String = "", indexing: Http2HeaderFieldIndexType? = nil) {
         self.field = field
         self.value = value
         self.indexing = indexing
