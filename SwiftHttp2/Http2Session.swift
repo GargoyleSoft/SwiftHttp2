@@ -51,28 +51,17 @@ final public class Http2Session : NSObject {
         writeQueue.qualityOfService = .userInitiated
         writeQueue.isSuspended = true
 
-//        var readStream: Unmanaged<CFReadStream>?
-//        var writeStream: Unmanaged<CFWriteStream>?
-
         Stream.getStreamsToHost(withName: host, port: port, inputStream: &inputStream, outputStream: &outputStream)
-
-//        CFStreamCreatePairWithSocketToHost(nil, host as CFString, port, &readStream, &writeStream)
-//
-//        guard let r = readStream else { throw Http2SessionError.readStreamCreateFailed }
-//        guard let w = writeStream else { throw Http2SessionError.writeStreamCreateFailed }
-
-//        inputStream = r.takeRetainedValue()
-//        outputStream = w.takeRetainedValue()
 
         super.init()
 
         inputStream!.delegate = self
-        inputStream!.setProperty(StreamSocketSecurityLevel.tlSv1, forKey: .socketSecurityLevelKey)
+        inputStream!.setProperty(StreamSocketSecurityLevel.negotiatedSSL, forKey: .socketSecurityLevelKey)
         inputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         inputStream!.open()
 
         outputStream!.delegate = self
-        outputStream!.setProperty(StreamSocketSecurityLevel.tlSv1, forKey: .socketSecurityLevelKey)
+        outputStream!.setProperty(StreamSocketSecurityLevel.negotiatedSSL, forKey: .socketSecurityLevelKey)
         outputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         outputStream!.open()
     }
