@@ -34,7 +34,7 @@ final public class Http2Session : NSObject {
 
     private let host: String
     private let port: Int
-    private let writeQueue: OperationQueue
+    private let writeQueue = OperationQueue()
 
     private let runLoop = RunLoop()
 
@@ -47,13 +47,12 @@ final public class Http2Session : NSObject {
         self.host = host
         self.port = port
 
-        writeQueue = OperationQueue()
-        writeQueue.qualityOfService = .userInitiated
-        writeQueue.isSuspended = true
-
         Stream.getStreamsToHost(withName: host, port: port, inputStream: &inputStream, outputStream: &outputStream)
 
         super.init()
+
+        writeQueue.qualityOfService = .userInitiated
+        writeQueue.isSuspended = true
 
         // Make sure security level is set.  If they sent a value, use theirs instead of ours.
         let properties = streamProperties.merging([.socketSecurityLevelKey : StreamSocketSecurityLevel.negotiatedSSL]) {
@@ -106,10 +105,6 @@ final public class Http2Session : NSObject {
             outputStream.delegate = nil
             self.outputStream = nil
         }
-    }
-
-    internal func closeStreams() {
-
     }
 
     public func write(_ frame: AbstractFrame) throws {
