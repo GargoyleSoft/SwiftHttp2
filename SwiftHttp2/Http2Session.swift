@@ -151,6 +151,7 @@ extension Http2Session :  StreamDelegate {
             read()
         } else if eventCode.contains(.openCompleted) {
             guard aStream == outputStream else { return }
+            print("Sending PRI")
             outputStream!.write(Http2Session.connectionPreface, maxLength: Http2Session.connectionPreface.count)
 
             writeQueue.isSuspended = false
