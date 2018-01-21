@@ -89,7 +89,7 @@ final public class Http2Session : NSObject {
 
         if sendGoAwayFrame, let lastStream = Http2StreamCache.shared.orderedStreams().last {
             let goAway = GoAwayFrame(lastStream: lastStream, errorCode: .none)
-            _ = try? write(goAway, to: writeQueue)
+            _ = try? write(goAway)
             writeQueue.waitUntilAllOperationsAreFinished()
         }
 
