@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = "SwiftHttp2"
-  s.version      = "0.0.1"
+  s.version      = "0.0.2"
   s.summary      = "An implementation of HTTP/2 in Swift"
   s.homepage     = "https://github.com/GargoyleSoft/SwiftHttp2"
   s.license      = { :type => "MIT", :file => "LICENSE" }
