@@ -20,62 +20,147 @@
 
 import Foundation
 
+enum Http2SessionError : Error {
+    case readStreamCreateFailed
+    case writeStreamCreateFailed
+    case outputStreamNotOpen
+}
+
+// https://github.com/nathanborror/swift-http2/blob/master/Sources/Http2.swift
 final public class Http2Session : NSObject {
-    private static let connectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n"
-    
+    private static let connectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".toUInt8Array()
+
     private let host: String
-    private let port: Int
+    private let port: UInt32
+    private let writeQueue: OperationQueue
 
-    private var session: URLSession!
-    private var streamTask: URLSessionStreamTask!
+    private var unprocessedBytes: [UInt8] = []
 
-    private init(host: String, port: Int = 443) {
+    internal var inputStream: InputStream?
+    internal var outputStream: OutputStream?
+
+    private init(host: String, port: UInt32 = 443) throws {
         self.host = host
         self.port = port
 
+        writeQueue = OperationQueue()
+        writeQueue.qualityOfService = .userInitiated
+
+        var readStream: Unmanaged<CFReadStream>?
+        var writeStream: Unmanaged<CFWriteStream>?
+
+        CFStreamCreatePairWithSocketToHost(nil, host as CFString, port, &readStream, &writeStream)
+
+        guard let r = readStream else { throw Http2SessionError.readStreamCreateFailed }
+        guard let w = writeStream else { throw Http2SessionError.writeStreamCreateFailed }
+
+        inputStream = r.takeRetainedValue()
+        outputStream = w.takeRetainedValue()
+
         super.init()
 
-        self.session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+        inputStream!.delegate = self
+        inputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
+        inputStream!.open()
+
+        outputStream!.delegate = self
+        outputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
+        outputStream!.open()
     }
 
-    public class func createClient(host: String, port: Int = 443) -> Http2Session {
+    public class func createClient(host: String, port: UInt32 = 443) throws -> Http2Session {
         Http2StreamCache.shared.initialize(as: .client)
-        return Http2Session(host: host, port: port)
+        return try Http2Session(host: host, port: port)
     }
 
-    public class func createServer() -> Http2Session {
+    public class func createServer() throws -> Http2Session {
         Http2StreamCache.shared.initialize(as: .server)
-        return Http2Session(host: "", port: 0)
+        return try Http2Session(host: "", port: 0)
     }
 
+    public func disconnect(sendGoAwayFrame: Bool = true) {
+        writeQueue.cancelAllOperations()
 
-    public func connect() {
-        streamTask = session.streamTask(withHostName: host, port: port)
-        streamTask.resume()
-        streamTask.captureStreams()
-        streamTask.startSecureConnection()
-    }
-
-    public func disconnect() {
-        if let _ = Http2StreamCache.shared.orderedStreams().last {
-            //let goAway = GoAwayFrame(lastStream: lastStream, errorCode: .none)
+        if let inputStream = inputStream {
+            inputStream.close()
+            inputStream.delegate = nil
+            self.inputStream = nil
         }
 
-        streamTask.stopSecureConnection()
+        if sendGoAwayFrame, let lastStream = Http2StreamCache.shared.orderedStreams().last {
+            let goAway = GoAwayFrame(lastStream: lastStream, errorCode: .none)
+            _ = try? write(goAway, to: writeQueue)
+            writeQueue.waitUntilAllOperationsAreFinished()
+        }
+
+        if let outputStream = outputStream {
+            outputStream.close()
+            outputStream.delegate = nil
+            self.outputStream = nil
+        }
+    }
+
+    internal func closeStreams() {
+
+    }
+
+    public func write(_ frame: AbstractFrame, to writeQueue: OperationQueue) throws {
+        guard let outputStream = outputStream else {
+            throw Http2SessionError.outputStreamNotOpen
+        }
+
+        let encoded = try frame.encode()
+
+        writeQueue.addOperation {
+            outputStream.write(encoded, maxLength: encoded.count)
+        }
+    }
+
+    private func read() {
+        guard let inputStream = inputStream else { return }
+
+        let length = 4096
+        var buffer = [UInt8](repeating: 0, count: length)
+        let bytesRead = inputStream.read(&buffer, maxLength: length)
+
+        if bytesRead > 0 {
+            unprocessedBytes += buffer[0 ..< bytesRead]
+
+            let frame = try! AbstractFrame.decode(data: unprocessedBytes)
+            print(frame)
+        } else if bytesRead == 0 {
+            disconnect(sendGoAwayFrame: false)
+        } else if let error = inputStream.streamError {
+            disconnect(sendGoAwayFrame: false)
+            print(error)
+        }
     }
 }
 
-extension Http2Session : URLSessionDelegate {
-    public func urlSession(_ session: URLSession, task: URLSessionTask, didReceive challenge: URLAuthenticationChallenge, completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
-        print("Got asked for credential")
-        completionHandler(.useCredential, nil)
-    }
+extension Http2Session :  StreamDelegate {
+    public func stream(_ aStream: Stream, handle eventCode: Stream.Event) {
+        // According to Quinn, we'll never get more than one event, so handle as a switch
+        // https://forums.developer.apple.com/thread/95632
+        switch (eventCode) {
+        case .endEncountered:
+            disconnect(sendGoAwayFrame: false)
 
-    
-}
+        case .errorOccurred:
+            disconnect(sendGoAwayFrame: false)
 
-extension Http2Session: URLSessionStreamDelegate {
-    public func urlSession(_ session: URLSession, streamTask: URLSessionStreamTask, didBecome inputStream: InputStream, outputStream: OutputStream) {
-        print("Called didBecome:inputStream:outputStream:")
+        case .hasBytesAvailable:
+            guard aStream == inputStream else { return }
+            read()
+
+        case .hasSpaceAvailable:
+            break
+
+        case .openCompleted:
+            guard aStream == outputStream else { return }
+            outputStream!.write(Http2Session.connectionPreface, maxLength: Http2Session.connectionPreface.count)
+
+        default:
+            return
+        }
     }
 }

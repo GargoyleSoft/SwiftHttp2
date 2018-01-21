@@ -35,9 +35,10 @@ public enum Http2HeaderStringEncodingType {
 /// - none: Adds headers without altering the dynamic header table.
 /// - never: Adds headers without altering the dynamic header table.  Used for protecting values.
 public enum Http2HeaderFieldIndexType {
-    case incremental
-    case none
-    case never
+    case indexedHeader
+    case literalHeaderIncremental
+    case literalHeaderNone
+    case literalHeaderNever
 }
 
 /// The class used to encode HTTP/2 headers according to RFC7541
@@ -56,7 +57,7 @@ public final class Http2HeaderEncoder {
     /// - Parameters
     ///   - indexing: The type of header indexing to use.  Defaults to `.incremental`
     ///   - stringEncoding: The type of string encoding to use.  Defaults to `.huffmanCode`
-    public init(indexing: Http2HeaderFieldIndexType = .incremental, stringEncoding: Http2HeaderStringEncodingType = .huffmanCode) {
+    public init(indexing: Http2HeaderFieldIndexType = .literalHeaderIncremental, stringEncoding: Http2HeaderStringEncodingType = .huffmanCode) {
         self.defaultStringEncoding = stringEncoding
         self.defaultIndexing = indexing
     }
@@ -69,15 +70,15 @@ public final class Http2HeaderEncoder {
     ///   - stringEncoding: The type of string encoding to use.  Defaults to `.huffmanCode`
     /// - Warning: Do not use this class method unless you will never encode another header during the entire *connection*.
     /// - Returns: The encoded headers.
-    public class func encode(headers: [Http2HeaderTableEntry], indexing: Http2HeaderFieldIndexType = .none, using stringEncoding: Http2HeaderStringEncodingType = .huffmanCode) -> [UInt8] {
+    public class func encode(headers: [Http2HeaderEntry], indexing: Http2HeaderFieldIndexType = .literalHeaderNone, using stringEncoding: Http2HeaderStringEncodingType = .huffmanCode) -> [UInt8] {
         let encoder = Http2HeaderEncoder(stringEncoding: stringEncoding)
         return encoder.encode(headers: headers, indexing: indexing, using: stringEncoding)
     }
 
     // Shouldn't be sending just one header in production, but this is useful for unit tests.
-    internal class func encode(field: String, value: String, indexing: Http2HeaderFieldIndexType = .none, using stringEncoding: Http2HeaderStringEncodingType = .huffmanCode) -> [UInt8] {
+    internal class func encode(field: String, value: String, indexing: Http2HeaderFieldIndexType = .literalHeaderNone, using stringEncoding: Http2HeaderStringEncodingType = .huffmanCode) -> [UInt8] {
         let encoder = Http2HeaderEncoder(stringEncoding: stringEncoding)
-        return encoder.encode(headers:[(field: field, value: value)], indexing: indexing)
+        return encoder.encode(headers:[Http2HeaderEntry(field: field, value: value, indexing: indexing)])
     }
 
     /// Encodes a set of field/value headers into HPACK format according to RFC7541.
@@ -87,13 +88,13 @@ public final class Http2HeaderEncoder {
     ///   - indexing: The type of indexing to use.  If not specified, the `defaultIndexing` of the encoder is used.
     ///   - stringEncoding: Whether to use literal octets or Huffman codes.  If not specified, the `defaultStringEncoding` is used.
     /// - Returns: The encoded headers.
-    public func encode(headers: [Http2HeaderTableEntry], indexing: Http2HeaderFieldIndexType? = nil, using stringEncoding: Http2HeaderStringEncodingType? = nil) -> [UInt8] {
+    public func encode(headers: [Http2HeaderEntry], indexing: Http2HeaderFieldIndexType? = nil, using stringEncoding: Http2HeaderStringEncodingType? = nil) -> [UInt8] {
         return headers
             .filter {
                 $0.value.isEmpty == false
             }
             .map {
-                encode(field: $0.field, value: $0.value, indexing: indexing ?? self.defaultIndexing, using: stringEncoding ?? self.defaultStringEncoding)
+                encode(field: $0.field, value: $0.value, indexing: $0.indexing ?? indexing ?? self.defaultIndexing, using: stringEncoding ?? self.defaultStringEncoding)
             }
             .reduce([], +)
     }
@@ -124,17 +125,20 @@ public final class Http2HeaderEncoder {
         let prefixBits: Int
 
         switch indexing ?? self.defaultIndexing {
-        case .incremental:
+        case .literalHeaderIncremental:
             startBits = 0b100_0000
             prefixBits = 6
 
-        case .never:
+        case .literalHeaderNever:
             startBits = 0b1_0000
             prefixBits = 4
 
-        case .none:
+        case .literalHeaderNone:
             startBits = 0
             prefixBits = 4
+
+        case .indexedHeader:
+            fatalError("Should not have gotten here!")
         }
 
         var ret: [UInt8]
@@ -149,7 +153,7 @@ public final class Http2HeaderEncoder {
 
         ret.append(contentsOf: encode(value, using: stringEncoding ?? self.defaultStringEncoding))
 
-        if indexing == .incremental {
+        if indexing == .literalHeaderIncremental {
             // Don't add this in the switch above or it'll run before the header lookup
             // which would make it always "succeed"
             headerTable.add(field: lowercaseField, value: value)

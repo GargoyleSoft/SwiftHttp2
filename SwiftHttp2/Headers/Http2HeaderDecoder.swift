@@ -37,7 +37,7 @@ public enum Http2DecoderError: Error {
 /// - See: https://tools.ietf.org/html/rfc7541
 public final class Http2HeaderDecoder {
     internal var headerTable = Http2HeaderTable()
-    internal var headers: [Http2HeaderTableEntry] = []
+    internal var headers: [Http2HeaderEntry] = []
 
     private var encodedData: [UInt8] = []
     private var index: Int = 0
@@ -45,7 +45,7 @@ public final class Http2HeaderDecoder {
     internal init() {
     }
 
-    internal func decode(encoded data: [UInt8]) throws -> [Http2HeaderTableEntry] {
+    internal func decode(encoded data: [UInt8]) throws -> [Http2HeaderEntry] {
         guard !data.isEmpty else { throw Http2DecoderError.missingData }
 
         headers = []
@@ -94,7 +94,7 @@ public final class Http2HeaderDecoder {
         return headers
     }
 
-    private func decodeLiteralHeaderField(prefixBits: UInt8) throws -> Http2HeaderTableEntry {
+    private func decodeLiteralHeaderField(prefixBits: UInt8) throws -> Http2HeaderEntry {
         let index = decodeInteger(prefixBits: prefixBits)
 
         let field: String
@@ -106,7 +106,7 @@ public final class Http2HeaderDecoder {
             throw Http2DecoderError.invalidTableIndex(index)
         }
 
-        return (field, decodeString())
+        return Http2HeaderEntry(field: field, value: decodeString())
     }
 
     private func decodeString() -> String {

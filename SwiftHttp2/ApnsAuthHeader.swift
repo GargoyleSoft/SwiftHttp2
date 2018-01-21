@@ -19,7 +19,10 @@
 // THE SOFTWARE.
 
 import Foundation
-import SwiftSSL  // pod 'OpenSSL-Universal'
+
+// pod 'OpenSSL-Universal'
+// Then add ${SRCROOT}/SwiftSSL to the project's import paths.
+import SwiftSSL
 
 enum ApnsAuthHeaderError: Error {
     case keyPathNotReadable
@@ -49,7 +52,14 @@ final class ApnsAuthHeader {
             throw ApnsAuthHeaderError.sslInitFailure
         }
 
+        let headerObj: [String: Any] = ["alg" : "ES256", "kid" : authKeyId]
+        let claimsObj: [String: Any] = ["iss" : teamId, "iat" : Date().timeIntervalSince1970]
+
+        let header = try! JSONSerialization.data(withJSONObject: headerObj).base64EncodedString()
+        let claims = try! JSONSerialization.data(withJSONObject: claimsObj).base64EncodedString()
+
         var slen = 0
+        let message = "\(header).\(claims)"
         guard EVP_DigestUpdate(mdctx, message, message.count) == 1,
             EVP_DigestSignFinal(mdctx, nil, &slen) == 1
             else {
@@ -72,12 +82,6 @@ final class ApnsAuthHeader {
         data.append(signature, count: slen)
 
         let signed = data.base64EncodedString()
-
-        let headerObj: [String: Any] = ["alg" : "ES256", "kid" : authKeyId]
-        let claimsObj: [String: Any] = ["iss" : teamId, "iat" : Date().timeIntervalSince1970]
-
-        let header = try! JSONSerialization.data(withJSONObject: headerObj).base64EncodedString()
-        let claims = try! JSONSerialization.data(withJSONObject: claimsObj).base64EncodedString()
 
         return "\(header).\(claims).\(signed)"
     }

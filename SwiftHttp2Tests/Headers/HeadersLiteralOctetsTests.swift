@@ -12,7 +12,7 @@ import XCTest
 class HeadersLiteralOctetsTests: XCTestCase {
     // http://tools.ietf.org/html/rfc7541#appendix-C.2.1
     func testLiteralHeaderWithIndexing() {
-        let encoded = Http2HeaderEncoder.encode(headers: [("custom-key", "custom-header")], indexing: .incremental, using: .literalOctets)
+        let encoded = Http2HeaderEncoder.encode(headers: [Http2HeaderEntry(field: "custom-key", value: "custom-header")], indexing: .literalHeaderIncremental, using: .literalOctets)
         XCTAssertEqual(encoded, [0x40, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d,
                                  0x6b, 0x65, 0x79, 0x0d, 0x63, 0x75, 0x73, 0x74, 0x6f,
                                  0x6d, 0x2d, 0x68, 0x65, 0x61, 0x64, 0x65, 0x72
@@ -27,7 +27,7 @@ class HeadersLiteralOctetsTests: XCTestCase {
 
     // http://tools.ietf.org/html/rfc7541#appendix-C.2.3
     func test_literal_header_never_indexing() {
-        let encoded = Http2HeaderEncoder.encode(field: "password", value: "secret", indexing: .never, using: .literalOctets)
+        let encoded = Http2HeaderEncoder.encode(field: "password", value: "secret", indexing: .literalHeaderNever, using: .literalOctets)
         XCTAssertEqual(encoded, [0x10, 0x08, 0x70, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64, 0x06, 0x73, 0x65, 0x63, 0x72, 0x65, 0x74])
     }
 
@@ -39,9 +39,9 @@ class HeadersLiteralOctetsTests: XCTestCase {
 
     func test_indexed_header_field_ignores_indexing() {
         let encoder = Http2HeaderEncoder()
-        let incr = encoder.encode(field: ":method", value: "GET", indexing: .incremental)
+        let incr = encoder.encode(field: ":method", value: "GET", indexing: .literalHeaderIncremental)
         let none = encoder.encode(field: ":method", value: "GET", indexing: .none)
-        let never = encoder.encode(field: ":method", value: "GET", indexing: .never)
+        let never = encoder.encode(field: ":method", value: "GET", indexing: .literalHeaderNever)
 
         XCTAssertEqual(incr, none)
         XCTAssertEqual(none, never)
@@ -50,15 +50,15 @@ class HeadersLiteralOctetsTests: XCTestCase {
     func test_consecutive_header_lists() {
         let encoder = Http2HeaderEncoder(stringEncoding: .literalOctets)
 
-        var headers: [Http2HeaderTableEntry] = [
-            (":method", "GET"),
-            (":scheme", "http"),
-            (":path", "/"),
-            (":authority", "www.example.com")
+        var headers: [Http2HeaderEntry] = [
+            Http2HeaderEntry(field: ":method", value: "GET"),
+            Http2HeaderEntry(field: ":scheme", value: "http"),
+            Http2HeaderEntry(field: ":path", value: "/"),
+            Http2HeaderEntry(field: ":authority", value: "www.example.com")
         ]
 
         // http://tools.ietf.org/html/rfc7541#appendix-C.3.1
-        var encoded = encoder.encode(headers: headers, indexing: .incremental)
+        var encoded = encoder.encode(headers: headers, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, [
             0x82, 0x86, 0x84, 0x41, 0x0f, 0x77, 0x77, 0x77, 0x2e, 0x65, 0x78,
             0x61, 0x6d, 0x70, 0x6c, 0x65, 0x2e, 0x63, 0x6f, 0x6d
@@ -66,9 +66,9 @@ class HeadersLiteralOctetsTests: XCTestCase {
         XCTAssertEqual(encoder.headerTable.dynamicTable.count, 1)
 
         // http://tools.ietf.org/html/rfc7541#appendix-C.3.2
-        headers.append(("cache-control", "no-cache"))
+        headers.append(Http2HeaderEntry(field: "cache-control", value: "no-cache"))
 
-        encoded = encoder.encode(headers: headers, indexing: .incremental)
+        encoded = encoder.encode(headers: headers, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, [
             0x82, 0x86, 0x84, 0xbe, 0x58, 0x08, 0x6e, 0x6f, 0x2d, 0x63, 0x61, 0x63, 0x68, 0x65
             ])
@@ -77,14 +77,14 @@ class HeadersLiteralOctetsTests: XCTestCase {
 
         // http://tools.ietf.org/html/rfc7541#appendix-C.3.3
         headers = [
-            (":method", "GET"),
-            (":scheme", "https"),
-            (":path", "/index.html"),
-            (":authority", "www.example.com"),
-            ("custom-key", "custom-value")
+            Http2HeaderEntry(field: ":method", value: "GET"),
+            Http2HeaderEntry(field: ":scheme", value: "https"),
+            Http2HeaderEntry(field: ":path", value: "/index.html"),
+            Http2HeaderEntry(field: ":authority", value: "www.example.com"),
+            Http2HeaderEntry(field: "custom-key", value: "custom-value")
         ]
 
-        encoded = encoder.encode(headers: headers, indexing: .incremental)
+        encoded = encoder.encode(headers: headers, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, [
             0x82, 0x87, 0x85, 0xbf, 0x40, 0x0a, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x6b, 0x65, 0x79,
             0x0c, 0x63, 0x75, 0x73, 0x74, 0x6f, 0x6d, 0x2d, 0x76, 0x61, 0x6c, 0x75, 0x65
@@ -97,15 +97,15 @@ class HeadersLiteralOctetsTests: XCTestCase {
         let encoder = Http2HeaderEncoder(stringEncoding: .literalOctets)
         encoder.headerTable.settingsHeaderTableSize = 256
 
-        var headers: [Http2HeaderTableEntry] = [
-            (":status", "302"),
-            ("cache-control", "private"),
-            ("date", "Mon, 21 Oct 2013 20:13:21 GMT"),
-            ("location", "https://www.example.com")
+        var headers: [Http2HeaderEntry] = [
+            Http2HeaderEntry(field: ":status", value: "302"),
+            Http2HeaderEntry(field: "cache-control", value: "private"),
+            Http2HeaderEntry(field: "date", value: "Mon, 21 Oct 2013 20:13:21 GMT"),
+            Http2HeaderEntry(field: "location", value: "https://www.example.com")
         ]
 
         // http://tools.ietf.org/html/rfc7541#appendix-C.5.1
-        var encoded = encoder.encode(headers: headers, indexing: .incremental)
+        var encoded = encoder.encode(headers: headers, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, [
             0x48, 0x03, 0x33, 0x30, 0x32, 0x58, 0x07, 0x70, 0x72, 0x69, 0x76, 0x61, 0x74, 0x65, 0x61, 0x1d,
             0x4d, 0x6f, 0x6e, 0x2c, 0x20, 0x32, 0x31, 0x20, 0x4f, 0x63, 0x74, 0x20, 0x32, 0x30, 0x31, 0x33,
@@ -117,25 +117,25 @@ class HeadersLiteralOctetsTests: XCTestCase {
 
         // https://tools.ietf.org/html/rfc7541#appendix-C.5.2
         headers = [
-            (":status", "307"),
-            ("cache-control", "private"),
-            ("date", "Mon, 21 Oct 2013 20:13:21 GMT"),
-            ("location", "https://www.example.com")
+            Http2HeaderEntry(field: ":status", value: "307"),
+            Http2HeaderEntry(field: "cache-control", value: "private"),
+            Http2HeaderEntry(field: "date", value: "Mon, 21 Oct 2013 20:13:21 GMT"),
+            Http2HeaderEntry(field: "location", value: "https://www.example.com")
         ]
-        encoded = encoder.encode(headers: headers, indexing: .incremental)
+        encoded = encoder.encode(headers: headers, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, [0x48, 0x03, 0x33, 0x30, 0x37, 0xc1, 0xc0, 0xbf])
         XCTAssertEqual(encoder.headerTable.dynamicTable.count, 4)
 
         // https://tools.ietf.org/html/rfc7541#appendix-C.5.3
         headers = [
-            (":status", "200"),
-            ("cache-control", "private"),
-            ("date", "Mon, 21 Oct 2013 20:13:22 GMT"),
-            ("location", "https://www.example.com"),
-            ("content-encoding", "gzip"),
-            ("set-cookie", "foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1")
+            Http2HeaderEntry(field: ":status", value: "200"),
+            Http2HeaderEntry(field: "cache-control", value: "private"),
+            Http2HeaderEntry(field: "date", value: "Mon, 21 Oct 2013 20:13:22 GMT"),
+            Http2HeaderEntry(field: "location", value: "https://www.example.com"),
+            Http2HeaderEntry(field: "content-encoding", value: "gzip"),
+            Http2HeaderEntry(field: "set-cookie", value: "foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1")
         ]
-        encoded = encoder.encode(headers: headers, indexing: .incremental)
+        encoded = encoder.encode(headers: headers, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, [
             0x88, 0xc1, 0x61, 0x1d, 0x4d, 0x6f, 0x6e, 0x2c, 0x20, 0x32, 0x31, 0x20, 0x4f, 0x63, 0x74, 0x20,
             0x32, 0x30, 0x31, 0x33, 0x20, 0x32, 0x30, 0x3a, 0x31, 0x33, 0x3a, 0x32, 0x32, 0x20, 0x47, 0x4d,

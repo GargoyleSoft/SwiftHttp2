@@ -10,11 +10,11 @@ import XCTest
 @testable import SwiftHttp2
 
 class HeadersHuffmanTests: XCTestCase {
-    private let multi1Header: [Http2HeaderTableEntry] = [
-        (":method", "GET"),
-        (":scheme", "http"),
-        (":path", "/"),
-        (":authority", "www.example.com")
+    private let multi1Header: [Http2HeaderEntry] = [
+        Http2HeaderEntry(field: ":method", value: "GET"),
+        Http2HeaderEntry(field: ":scheme", value: "http"),
+        Http2HeaderEntry(field: ":path", value: "/"),
+        Http2HeaderEntry(field: ":authority", value: "www.example.com")
     ]
 
     private let multi1Encoding: [UInt8] = [
@@ -22,22 +22,22 @@ class HeadersHuffmanTests: XCTestCase {
         0xf2, 0x3a, 0x6b, 0xa0, 0xab, 0x90, 0xf4, 0xff
     ]
 
-    private let multi2Header: [Http2HeaderTableEntry] = [
-        (":method", "GET"),
-        (":scheme", "http"),
-        (":path", "/"),
-        (":authority", "www.example.com"),
-        ("cache-control", "no-cache")
+    private let multi2Header: [Http2HeaderEntry] = [
+        Http2HeaderEntry(field: ":method", value: "GET"),
+        Http2HeaderEntry(field: ":scheme", value: "http"),
+        Http2HeaderEntry(field: ":path", value: "/"),
+        Http2HeaderEntry(field: ":authority", value: "www.example.com"),
+        Http2HeaderEntry(field: "cache-control", value: "no-cache")
     ]
 
     private let multi2Encoding: [UInt8] = [0x82, 0x86, 0x84, 0xbe, 0x58, 0x86, 0xa8, 0xeb, 0x10, 0x64, 0x9c, 0xbf]
 
-    private let multi3Header: [Http2HeaderTableEntry] = [
-        (":method", "GET"),
-        (":scheme", "https"),
-        (":path", "/index.html"),
-        (":authority", "www.example.com"),
-        ("custom-key", "custom-value")
+    private let multi3Header: [Http2HeaderEntry] = [
+        Http2HeaderEntry(field: ":method", value: "GET"),
+        Http2HeaderEntry(field: ":scheme", value: "https"),
+        Http2HeaderEntry(field: ":path", value: "/index.html"),
+        Http2HeaderEntry(field: ":authority", value: "www.example.com"),
+        Http2HeaderEntry(field: "custom-key", value:  "custom-value")
     ]
 
     private let multi3Encoding: [UInt8] = [
@@ -45,7 +45,7 @@ class HeadersHuffmanTests: XCTestCase {
         0x89, 0x25, 0xa8, 0x49, 0xe9, 0x5b, 0xb8, 0xe8, 0xb4, 0xbf
     ]
 
-    func headersMatch(lhs: [Http2HeaderTableEntry], rhs: [Http2HeaderTableEntry], file: StaticString = #file, line: UInt = #line) {
+    func headersMatch(lhs: [Http2HeaderEntry], rhs: [Http2HeaderEntry], file: StaticString = #file, line: UInt = #line) {
         guard lhs.count == rhs.count else {
             XCTFail("Length of headers doesn't match", file: file, line: line)
             return
@@ -63,18 +63,18 @@ class HeadersHuffmanTests: XCTestCase {
         let encoder = Http2HeaderEncoder(stringEncoding: .huffmanCode)
 
         // http://tools.ietf.org/html/rfc7541#appendix-C.4.1
-        var encoded = encoder.encode(headers: multi1Header, indexing: .incremental)
+        var encoded = encoder.encode(headers: multi1Header, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, multi1Encoding)
         XCTAssertEqual(encoder.headerTable.dynamicTable.count, 1)
 
         // http://tools.ietf.org/html/rfc7541#appendix-C.4.2
-        encoded = encoder.encode(headers: multi2Header, indexing: .incremental)
+        encoded = encoder.encode(headers: multi2Header, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, multi2Encoding)
         XCTAssertEqual(encoder.headerTable.dynamicTable.count, 2)
         print(encoder.headerTable.dumpTableForUnitTests())
 
         // http://tools.ietf.org/html/rfc7541#appendix-C.4.3
-        encoded = encoder.encode(headers: multi3Header, indexing: .incremental)
+        encoded = encoder.encode(headers: multi3Header, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, multi3Encoding)
         XCTAssertEqual(encoder.headerTable.dynamicTable.count, 3)
         print(encoder.headerTable.dumpTableForUnitTests())
@@ -99,11 +99,11 @@ class HeadersHuffmanTests: XCTestCase {
         }
     }
 
-    private let eviction1Headers: [Http2HeaderTableEntry] = [
-        (":status", "302"),
-        ("cache-control", "private"),
-        ("date", "Mon, 21 Oct 2013 20:13:21 GMT"),
-        ("location", "https://www.example.com")
+    private let eviction1Headers: [Http2HeaderEntry] = [
+        Http2HeaderEntry(field: ":status", value: "302"),
+        Http2HeaderEntry(field: "cache-control", value: "private"),
+        Http2HeaderEntry(field: "date", value: "Mon, 21 Oct 2013 20:13:21 GMT"),
+        Http2HeaderEntry(field: "location", value: "https://www.example.com")
     ]
 
     private let eviction1Encoding: [UInt8] = [
@@ -113,22 +113,22 @@ class HeadersHuffmanTests: XCTestCase {
         0xe9, 0xae, 0x82, 0xae, 0x43, 0xd3,
         ]
 
-    private let eviction2Headers: [Http2HeaderTableEntry] = [
-        (":status", "307"),
-        ("cache-control", "private"),
-        ("date", "Mon, 21 Oct 2013 20:13:21 GMT"),
-        ("location", "https://www.example.com")
+    private let eviction2Headers: [Http2HeaderEntry] = [
+        Http2HeaderEntry(field: ":status", value: "307"),
+        Http2HeaderEntry(field: "cache-control", value: "private"),
+        Http2HeaderEntry(field: "date", value: "Mon, 21 Oct 2013 20:13:21 GMT"),
+        Http2HeaderEntry(field: "location", value: "https://www.example.com")
     ]
 
     private let eviction2Encoding: [UInt8] = [0x48, 0x83, 0x64, 0x0e, 0xff, 0xc1, 0xc0, 0xbf]
 
-    private let eviction3Headers: [Http2HeaderTableEntry] = [
-        (":status", "200"),
-        ("cache-control", "private"),
-        ("date", "Mon, 21 Oct 2013 20:13:22 GMT"),
-        ("location", "https://www.example.com"),
-        ("content-encoding", "gzip"),
-        ("set-cookie", "foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1")
+    private let eviction3Headers: [Http2HeaderEntry] = [
+        Http2HeaderEntry(field: ":status", value: "200"),
+        Http2HeaderEntry(field: "cache-control", value: "private"),
+        Http2HeaderEntry(field: "date", value: "Mon, 21 Oct 2013 20:13:22 GMT"),
+        Http2HeaderEntry(field: "location", value: "https://www.example.com"),
+        Http2HeaderEntry(field: "content-encoding", value: "gzip"),
+        Http2HeaderEntry(field: "set-cookie", value: "foo=ASDJKHQKBZXOQWEOPIUAXQWEOIU; max-age=3600; version=1")
     ]
 
     private let eviction3Encoding: [UInt8] = [
@@ -144,17 +144,17 @@ class HeadersHuffmanTests: XCTestCase {
         encoder.headerTable.settingsHeaderTableSize = 256
 
         // http://tools.ietf.org/html/rfc7541#appendix-C.6.1
-        var encoded = encoder.encode(headers: eviction1Headers, indexing: .incremental)
+        var encoded = encoder.encode(headers: eviction1Headers, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, eviction1Encoding)
         XCTAssertEqual(encoder.headerTable.dynamicTable.count, 4)
 
         // https://tools.ietf.org/html/rfc7541#appendix-C.6.2
-        encoded = encoder.encode(headers: eviction2Headers, indexing: .incremental)
+        encoded = encoder.encode(headers: eviction2Headers, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, eviction2Encoding)
         XCTAssertEqual(encoder.headerTable.dynamicTable.count, 4)
 
         // https://tools.ietf.org/html/rfc7541#appendix-C.6.3
-        encoded = encoder.encode(headers: eviction3Headers, indexing: .incremental)
+        encoded = encoder.encode(headers: eviction3Headers, indexing: .literalHeaderIncremental)
         XCTAssertEqual(encoded, eviction3Encoding)
         XCTAssertEqual(encoder.headerTable.dynamicTable.count, 3)
     }

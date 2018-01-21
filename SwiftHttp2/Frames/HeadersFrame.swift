@@ -38,13 +38,13 @@ final public class HeadersFrame: AbstractFrame, HasFramePriority, HasPadding, Ha
     public var endHeaders = false
 
     /// The default type of indexing to use for the headers in this frame.  Defaults to `.none`
-    public var headerFieldIndexType = Http2HeaderFieldIndexType.none
+    public var headerFieldIndexType = Http2HeaderFieldIndexType.literalHeaderNone
 
     /// The default type of encoding to use for this frame.  Defaults to `.huffmanCode`
     public var headerEncoding = Http2HeaderStringEncodingType.huffmanCode
 
     /// The headers included in this frame.
-    public var headers: [Http2HeaderTableEntry] = []
+    public var headers: [Http2HeaderEntry] = []
     
     /// The stream that this frame is dependent upon.
     public var dependsOn: Http2Stream? = nil
@@ -69,7 +69,7 @@ final public class HeadersFrame: AbstractFrame, HasFramePriority, HasPadding, Ha
     ///   - dependsOnStreamExclusively: Whether or not the stream dependency is exclusive.
     ///   - priorityWeight: The priority weight for the stream, between 0 and 255.
     /// - Throws: `FrameCodingError`
-    public init(stream: Http2Stream, padLength: UInt8 = 0, padding: [UInt8]? = nil, endStream: Bool = false, endHeaders: Bool = false, headerFieldIndexType: Http2HeaderFieldIndexType = .none, headerEncoding: Http2HeaderStringEncodingType = .huffmanCode, dependsOn: Http2Stream? = nil, dependsOnStreamExclusively: Bool = false, priorityWeight: UInt8 = 0) throws {
+    public init(stream: Http2Stream, padLength: UInt8 = 0, padding: [UInt8]? = nil, endStream: Bool = false, endHeaders: Bool = false, headerFieldIndexType: Http2HeaderFieldIndexType = .literalHeaderNone, headerEncoding: Http2HeaderStringEncodingType = .huffmanCode, dependsOn: Http2Stream? = nil, dependsOnStreamExclusively: Bool = false, priorityWeight: UInt8 = 0) throws {
         self.endStream = endStream
         self.endHeaders = endHeaders
         self.headerFieldIndexType = headerFieldIndexType
@@ -97,7 +97,7 @@ final public class HeadersFrame: AbstractFrame, HasFramePriority, HasPadding, Ha
     ///   - dependsOnStreamExclusively: Whether or not the stream dependency is exclusive.
     ///   - priorityWeight: The priority weight for the stream, between 0 and 255.
     /// - Throws: `FrameCodingError`
-    convenience init(stream: Http2Stream, padLength: UInt8 = 0, padding: String, endStream: Bool = false, endHeaders: Bool = false, headerFieldIndexType: Http2HeaderFieldIndexType = .none, headerEncoding: Http2HeaderStringEncodingType = .huffmanCode, dependsOn: Http2Stream? = nil, dependsOnStreamExclusively: Bool = false, priorityWeight: UInt8 = 0) throws {
+    convenience init(stream: Http2Stream, padLength: UInt8 = 0, padding: String, endStream: Bool = false, endHeaders: Bool = false, headerFieldIndexType: Http2HeaderFieldIndexType = .literalHeaderNone, headerEncoding: Http2HeaderStringEncodingType = .huffmanCode, dependsOn: Http2Stream? = nil, dependsOnStreamExclusively: Bool = false, priorityWeight: UInt8 = 0) throws {
         try self.init(stream: stream, padLength: padLength, padding: [UInt8](padding.utf8), endStream: endStream, endHeaders: endHeaders, headerFieldIndexType: headerFieldIndexType, headerEncoding: headerEncoding, dependsOn: dependsOn, dependsOnStreamExclusively: dependsOnStreamExclusively, priorityWeight: priorityWeight)
     }
 

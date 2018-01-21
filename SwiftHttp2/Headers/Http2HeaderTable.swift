@@ -20,76 +20,72 @@
 
 import Foundation
 
-/// A alias representing a header's field name and value.
-public typealias Http2HeaderTableEntry = (field: String, value: String)
-
 internal struct Http2HeaderTable {
     internal let staticTableCount: Int
 
-    private let staticTable: [Http2HeaderTableEntry] = [
-        (":authority", ""),
-        (":method", "GET"),
-        (":method", "POST"),
-        (":path", "/"),
-        (":path", "/index.html"),
-        (":scheme", "http"),
-        (":scheme", "https"),
-        (":status", "200"),
-        (":status", "204"),
-        (":status", "206"),
-        (":status", "304"),
-        (":status", "400"),
-        (":status", "404"),
-        (":status", "500"),
-        ("accept-charset", ""),
-        ("accept-encoding", "gzip, deflate"),
-        ("accept-language", ""),
-        ("accept-ranges", ""),
-        ("accept", ""),
-        ("access-control-allow-origin", ""),
-        ("age", ""),
-        ("allow", ""),
-        ("authorization", ""),
-        ("cache-control", ""),
-        ("content-disposition", ""),
-        ("content-encoding", ""),
-        ("content-language", ""),
-        ("content-length", ""),
-        ("content-location", ""),
-        ("content-range", ""),
-        ("content-type", ""),
-        ("cookie", ""),
-        ("date", ""),
-        ("etag", ""),
-        ("expect", ""),
-        ("expires", ""),
-        ("from", ""),
-        ("host", ""),
-        ("if-match", ""),
-        ("if-modified-since", ""),
-        ("if-none-match", ""),
-        ("if-range", ""),
-        ("if-unmodified-since", ""),
-        ("last-modified", ""),
-        ("link", ""),
-        ("location", ""),
-        ("max-forwards", ""),
-        ("proxy-authenticate", ""),
-        ("proxy-authorization", ""),
-        ("range", ""),
-        ("referer", ""),
-        ("refresh", ""),
-        ("retry-after", ""),
-        ("server", ""),
-        ("set-cookie", ""),
-        ("strict-transport-security", ""),
-        ("transfer-encoding", ""),
-        ("user-agent", ""),
-        ("vary", ""),
-        ("via", ""),
-        ("www-authenticate", ""),
+    private let staticTable: [Http2HeaderEntry] = [
+        Http2HeaderEntry(field: ":authority"),
+        Http2HeaderEntry(field: ":method", value: "GET"),
+        Http2HeaderEntry(field: ":method", value: "POST"),
+        Http2HeaderEntry(field: ":path", value: "/"),
+        Http2HeaderEntry(field: ":path", value: "/index.html"),
+        Http2HeaderEntry(field: ":scheme", value: "http"),
+        Http2HeaderEntry(field: ":scheme", value: "https"),
+        Http2HeaderEntry(field: ":status", value: "200"),
+        Http2HeaderEntry(field: ":status", value: "204"),
+        Http2HeaderEntry(field: ":status", value: "206"),
+        Http2HeaderEntry(field: ":status", value: "304"),
+        Http2HeaderEntry(field: ":status", value: "400"),
+        Http2HeaderEntry(field: ":status", value: "404"),
+        Http2HeaderEntry(field: ":status", value: "500"),
+        Http2HeaderEntry(field: "accept-charset"),
+        Http2HeaderEntry(field: "accept-encoding", value: "gzip, deflate"),
+        Http2HeaderEntry(field: "accept-language"),
+        Http2HeaderEntry(field: "accept-ranges"),
+        Http2HeaderEntry(field: "accept"),
+        Http2HeaderEntry(field: "access-control-allow-origin"),
+        Http2HeaderEntry(field: "age"),
+        Http2HeaderEntry(field: "allow"),
+        Http2HeaderEntry(field: "authorization"),
+        Http2HeaderEntry(field: "cache-control"),
+        Http2HeaderEntry(field: "content-disposition"),
+        Http2HeaderEntry(field: "content-encoding"),
+        Http2HeaderEntry(field: "content-language"),
+        Http2HeaderEntry(field: "content-length"),
+        Http2HeaderEntry(field: "content-location"),
+        Http2HeaderEntry(field: "content-range"),
+        Http2HeaderEntry(field: "content-type"),
+        Http2HeaderEntry(field: "cookie"),
+        Http2HeaderEntry(field: "date"),
+        Http2HeaderEntry(field: "etag"),
+        Http2HeaderEntry(field: "expect"),
+        Http2HeaderEntry(field: "expires"),
+        Http2HeaderEntry(field: "from"),
+        Http2HeaderEntry(field: "host"),
+        Http2HeaderEntry(field: "if-match"),
+        Http2HeaderEntry(field: "if-modified-since"),
+        Http2HeaderEntry(field: "if-none-match"),
+        Http2HeaderEntry(field: "if-range"),
+        Http2HeaderEntry(field: "if-unmodified-since"),
+        Http2HeaderEntry(field: "last-modified"),
+        Http2HeaderEntry(field: "link"),
+        Http2HeaderEntry(field: "location"),
+        Http2HeaderEntry(field: "max-forwards"),
+        Http2HeaderEntry(field: "proxy-authenticate"),
+        Http2HeaderEntry(field: "proxy-authorization"),
+        Http2HeaderEntry(field: "range"),
+        Http2HeaderEntry(field: "referer"),
+        Http2HeaderEntry(field: "refresh"),
+        Http2HeaderEntry(field: "retry-after"),
+        Http2HeaderEntry(field: "server"),
+        Http2HeaderEntry(field: "set-cookie"),
+        Http2HeaderEntry(field: "strict-transport-security"),
+        Http2HeaderEntry(field: "transfer-encoding"),
+        Http2HeaderEntry(field: "user-agent"),
+        Http2HeaderEntry(field: "vary"),
+        Http2HeaderEntry(field: "via"),
+        Http2HeaderEntry(field: "www-authenticate"),
         ]
-
 
     /// If a SETTINGS frame comes in with the SETTINGS_HEADER_TABLE_SIZE set this variable
     var settingsHeaderTableSize = 4096 {
@@ -107,8 +103,10 @@ internal struct Http2HeaderTable {
         didSet {
             if maxDynamicTableSize == 0 {
                 dynamicTable.removeAll()
-                maxDynamicTableSize = 4096
+                maxDynamicTableSize = settingsHeaderTableSize
                 return
+            } else if maxDynamicTableSize > settingsHeaderTableSize {
+                maxDynamicTableSize = settingsHeaderTableSize
             }
 
             while dynamicTableSize() > maxDynamicTableSize {
@@ -117,7 +115,7 @@ internal struct Http2HeaderTable {
         }
     }
 
-    internal var dynamicTable: [Http2HeaderTableEntry] = []
+    internal var dynamicTable: [Http2HeaderEntry] = []
 
     init() {
         staticTableCount = staticTable.count
@@ -142,7 +140,7 @@ internal struct Http2HeaderTable {
     }
 
     func indexOf(field: String, value: String? = nil) -> Int? {
-        let comparer: (Http2HeaderTableEntry) -> Bool
+        let comparer: (Http2HeaderEntry) -> Bool
 
         if let value = value {
             comparer = {
@@ -164,7 +162,7 @@ internal struct Http2HeaderTable {
         return nil
     }
 
-    mutating func add(field: String, value: String) {
+    mutating func add(field: String, value: String, indexing: Http2HeaderFieldIndexType = .literalHeaderNone) {
         let entrySize = field.count + value.count + 32
 
         guard entrySize <= maxDynamicTableSize else {
@@ -176,10 +174,10 @@ internal struct Http2HeaderTable {
             _ = dynamicTable.popLast()
         }
 
-        dynamicTable.insert((field: field.lowercased(), value: value), at: 0)
+        dynamicTable.insert(Http2HeaderEntry(field: field.lowercased(), value: value), at: 0)
     }
 
-    subscript(index: Int) -> Http2HeaderTableEntry? {
+    subscript(index: Int) -> Http2HeaderEntry? {
         get {
             guard index > 0 else { return nil }
 

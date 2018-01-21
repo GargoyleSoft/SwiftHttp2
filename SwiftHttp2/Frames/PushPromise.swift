@@ -35,13 +35,13 @@ final public class PushPromiseFrame: AbstractFrame, HasPadding, HasHeaders {
     public var promisedStream: Http2Stream! = nil
 
     /// The default type of indexing to use for the headers in this frame.  Defaults to `.none`
-    public var headerFieldIndexType = Http2HeaderFieldIndexType.none
+    public var headerFieldIndexType = Http2HeaderFieldIndexType.literalHeaderNone
 
     /// The default type of encoding to use for this frame.  Defaults to `.huffmanCode`
     public var headerEncoding = Http2HeaderStringEncodingType.huffmanCode
 
     /// The headers included in this frame.
-    public var headers: [Http2HeaderTableEntry] = []
+    public var headers: [Http2HeaderEntry] = []
 
     /// Whether or not the END_HEADERS flag is present in the frame.
     public var endHeaders = false

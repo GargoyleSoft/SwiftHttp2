@@ -48,9 +48,9 @@ class HeaderFrameTests: SwiftHttp2TestCase {
         guard let frame = f else { return }
 
         frame.add(headers: [
-            (":method", "POST"),
-            ("Content-Type", "application-json"),
-            ("Accept", "application-json")
+            Http2HeaderEntry(field: ":method", value: "POST"),
+            Http2HeaderEntry(field: "Content-Type", value: "application-json"),
+            Http2HeaderEntry(field: "Accept", value: "application-json")
             ])
 
         verifyEncoding(for: frame, using: octetEncoding, against: validateOctetEncoding)
@@ -64,9 +64,9 @@ class HeaderFrameTests: SwiftHttp2TestCase {
 
         MyAssertNoThrow(try HeadersFrame(stream: stream, endHeaders: true, headerEncoding: .huffmanCode)) { frame in
             frame.add(headers: [
-                (":method", "POST"),
-                ("Content-Type", "application-json"),
-                ("Accept", "application-json")
+                Http2HeaderEntry(field: ":method", value: "POST"),
+                Http2HeaderEntry(field: "Content-Type", value: "application-json"),
+                Http2HeaderEntry(field: "Accept", value: "application-json")
                 ])
 
             verifyEncoding(for: frame, using: huffmanEncoding, against: validateHuffmanEncoding)
@@ -76,9 +76,9 @@ class HeaderFrameTests: SwiftHttp2TestCase {
     func testEnsureFrameLengthSet() {
         MyAssertNoThrow(try HeadersFrame(stream: Http2Stream.connectionStream, endHeaders: true)) { frame in
             frame.add(headers: [
-                (":method", "POST"),
-                ("Content-Type", "application-json"),
-                ("Accept", "application-json")
+                Http2HeaderEntry(field: ":method", value: "POST"),
+                Http2HeaderEntry(field: "Content-Type", value: "application-json"),
+                Http2HeaderEntry(field: "Accept", value: "application-json")
                 ])
             verifyFrameLengthSet(frame)
         }

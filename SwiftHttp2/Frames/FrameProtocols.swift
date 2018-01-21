@@ -24,25 +24,25 @@ public protocol HasHeaders: class {
     var headerFieldIndexType: Http2HeaderFieldIndexType { get set }
     var headerEncoding: Http2HeaderStringEncodingType { get set }
     var endHeaders: Bool { get set }
-    var headers: [Http2HeaderTableEntry] { get set }
+    var headers: [Http2HeaderEntry] { get set }
 
-    func add(header: Http2HeaderTableEntry)
-    func add(headers: [Http2HeaderTableEntry])
-    func add(header field: String, value: String)
+    func add(header: Http2HeaderEntry)
+    func add(headers: [Http2HeaderEntry])
+    func add(header field: String, value: String, indexing: Http2HeaderFieldIndexType)
 }
 
 extension HasHeaders where Self: AbstractFrame {
     /// Adds a header to the frame.
     ///
     /// - Parameter header: The header field and value to add.
-    public func add(header: Http2HeaderTableEntry) {
+    public func add(header: Http2HeaderEntry) {
         headers.append(header)
     }
 
     /// Adds a set of headers to the frame.
     ///
     /// - Parameter headers: The header field/value pairs to add.
-    public func add(headers: [Http2HeaderTableEntry]) {
+    public func add(headers: [Http2HeaderEntry]) {
         self.headers.append(contentsOf: headers)
     }
 
@@ -51,8 +51,8 @@ extension HasHeaders where Self: AbstractFrame {
     /// - Parameters:
     ///   - field: The name of the header field.
     ///   - value: The value of the header.
-    public func add(header field: String, value: String) {
-        headers.append((field: field, value: value))
+    public func add(header field: String, value: String, indexing: Http2HeaderFieldIndexType = .literalHeaderNone) {
+        headers.append(Http2HeaderEntry(field: field, value: value, indexing: indexing))
     }
 
     /// Encodes the headers via HPACK/RFC7541

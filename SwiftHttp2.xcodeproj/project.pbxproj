@@ -40,6 +40,7 @@
 		D28E43171FFC181F00458C31 /* SwiftHttp2.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D28E430D1FFC181F00458C31 /* SwiftHttp2.framework */; };
 		D28E431C1FFC181F00458C31 /* SwiftHttp2Tests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D28E431B1FFC181F00458C31 /* SwiftHttp2Tests.swift */; };
 		D28E431E1FFC181F00458C31 /* SwiftHttp2.h in Headers */ = {isa = PBXBuildFile; fileRef = D28E43101FFC181F00458C31 /* SwiftHttp2.h */; settings = {ATTRIBUTES = (Public, ); }; };
+		D29F27322014207500B66A8D /* Http2HeaderEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29F27312014207500B66A8D /* Http2HeaderEntry.swift */; };
 		D2F3FE181FFDF2C400D74A7B /* GoAwayFrameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F3FE171FFDF2C400D74A7B /* GoAwayFrameTests.swift */; };
 		D2F3FE1A1FFE037000D74A7B /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F3FE191FFE037000D74A7B /* String.swift */; };
 		D2F3FE1C1FFECB3000D74A7B /* SettingsFrameTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2F3FE1B1FFECB3000D74A7B /* SettingsFrameTests.swift */; };
@@ -96,6 +97,7 @@
 		D28E431B1FFC181F00458C31 /* SwiftHttp2Tests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwiftHttp2Tests.swift; sourceTree = "<group>"; };
 		D28E431D1FFC181F00458C31 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D29F271320105F7100B66A8D /* ApnsAuthHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApnsAuthHeader.swift; sourceTree = "<group>"; };
+		D29F27312014207500B66A8D /* Http2HeaderEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Http2HeaderEntry.swift; sourceTree = "<group>"; };
 		D2F3FE171FFDF2C400D74A7B /* GoAwayFrameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoAwayFrameTests.swift; sourceTree = "<group>"; };
 		D2F3FE191FFE037000D74A7B /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
 		D2F3FE1B1FFECB3000D74A7B /* SettingsFrameTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsFrameTests.swift; sourceTree = "<group>"; };
@@ -152,6 +154,7 @@
 				D22EA5911FFC1C9D009FB412 /* Huffman.swift */,
 				D22EA5921FFC1C9D009FB412 /* Http2HeaderTable.swift */,
 				D22EA5931FFC1C9D009FB412 /* BitWriter.swift */,
+				D29F27312014207500B66A8D /* Http2HeaderEntry.swift */,
 			);
 			path = Headers;
 			sourceTree = "<group>";
@@ -356,6 +359,7 @@
 				D22EA59C1FFC1C9D009FB412 /* PriorityFrame.swift in Sources */,
 				D22EA5A81FFC1C9D009FB412 /* Http2HeaderTable.swift in Sources */,
 				D22EA5951FFC1C9D009FB412 /* Http2Stream.swift in Sources */,
+				D29F27322014207500B66A8D /* Http2HeaderEntry.swift in Sources */,
 				D22EA5971FFC1C9D009FB412 /* PingFrame.swift in Sources */,
 				D22EA5981FFC1C9D009FB412 /* HeadersFrame.swift in Sources */,
 				D22EA5991FFC1C9D009FB412 /* GoAwayFrame.swift in Sources */,

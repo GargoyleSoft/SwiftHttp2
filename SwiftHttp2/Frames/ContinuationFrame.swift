@@ -24,7 +24,7 @@ import Foundation
 /// - See: https://tools.ietf.org/html/rfc7540#section-6.10
 public final class ContinuationFrame: AbstractFrame, HasHeaders {
     /// The default type of indexing to use for the headers in this frame.  Defaults to `.none`
-    public var headerFieldIndexType = Http2HeaderFieldIndexType.none
+    public var headerFieldIndexType = Http2HeaderFieldIndexType.literalHeaderNone
 
     /// The default type of encoding to use for this frame.  Defaults to `.huffmanCode`
     public var headerEncoding = Http2HeaderStringEncodingType.huffmanCode
@@ -33,7 +33,7 @@ public final class ContinuationFrame: AbstractFrame, HasHeaders {
     public var endHeaders = false
 
     /// The headers included in this frame.
-    public var headers: [Http2HeaderTableEntry] = []
+    public var headers: [Http2HeaderEntry] = []
 
     /// The designated constructor.
     ///
@@ -43,7 +43,7 @@ public final class ContinuationFrame: AbstractFrame, HasHeaders {
     ///   - headerFieldIndexType: The default type of indexing to use for the headers in this frame.  Defaults to `.none`
     ///   - headerEncoding: The default type of encoding to use for this frame.  Defaults to `.huffmanCode`
     /// - Throws: `FrameCodingError`
-    public init(stream: Http2Stream, endHeaders: Bool = false, headerFieldIndexType: Http2HeaderFieldIndexType = .none, headerEncoding: Http2HeaderStringEncodingType = .huffmanCode) throws {
+    public init(stream: Http2Stream, endHeaders: Bool = false, headerFieldIndexType: Http2HeaderFieldIndexType = .literalHeaderNone, headerEncoding: Http2HeaderStringEncodingType = .huffmanCode) throws {
         self.endHeaders = endHeaders
         self.headerFieldIndexType = headerFieldIndexType
         self.headerEncoding = headerEncoding
