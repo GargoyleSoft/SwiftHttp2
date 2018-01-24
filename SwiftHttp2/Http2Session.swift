@@ -26,9 +26,10 @@ enum Http2SessionError : Error {
     case outputStreamNotOpen
 }
 
-// https://developer.apple.com/library/content/technotes/tn2232/_index.html
+// TODO: https://developer.apple.com/documentation/security/secure_transport
+// TODO: https://developer.apple.com/library/content/technotes/tn2232/_index.html
 
-// https://github.com/nathanborror/swift-http2/blob/master/Sources/Http2.swift
+// TODO: https://github.com/nathanborror/swift-http2/blob/master/Sources/Http2.swift
 final public class Http2Session : NSObject {
     private static let connectionPreface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n".toUInt8Array()
 
@@ -39,6 +40,7 @@ final public class Http2Session : NSObject {
     private let runLoop = RunLoop()
 
     private var unprocessedBytes: [UInt8] = []
+    private var sslContent: SSLContext!
 
     internal var inputStream: InputStream?
     internal var outputStream: OutputStream?
@@ -54,24 +56,38 @@ final public class Http2Session : NSObject {
         writeQueue.qualityOfService = .userInitiated
         writeQueue.isSuspended = true
 
+        let defaults: [Stream.PropertyKey : Any?] = [
+            Stream.PropertyKey(kCFStreamPropertySSLContext as String) : [:],
+            .socketSecurityLevelKey : StreamSocketSecurityLevel.negotiatedSSL
+        ]
+
         // Make sure security level is set.  If they sent a value, use theirs instead of ours.
-        let properties = streamProperties.merging([.socketSecurityLevelKey : StreamSocketSecurityLevel.negotiatedSSL]) {
+        let properties = streamProperties.merging(defaults) {
             current, _ in
             current
         }
 
+        guard let ctx = inputStream!.property(forKey: Stream.PropertyKey(kCFStreamPropertySSLContext as String)) else {
+            fatalError()
+        }
+
+        let context = ctx as! SSLContext
+        //SSLSetALPNProtocols(context, [] as CFArray)
+        SSLSetSessionOption(context, SSLSessionOption.allowRenegotiation, false)
+        SSLSetSessionOption(context, SSLSessionOption.breakOnClientAuth, true)
+        SSLHandshake(context)
+
         inputStream!.delegate = self
         properties.forEach {
             print("Setting \($0.key) to \($0.value)")
-            inputStream!.setProperty($0.value, forKey: $0.key)
+            if !inputStream!.setProperty($0.value, forKey: $0.key) {
+                print("Failed to set \($0.key) to \($0.value)")
+            }
         }
         inputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         inputStream!.open()
 
         outputStream!.delegate = self
-        properties.forEach {
-            outputStream!.setProperty($0.value, forKey: $0.key)
-        }
         outputStream!.schedule(in: .main, forMode: .defaultRunLoopMode)
         outputStream!.open()
     }
@@ -138,6 +154,36 @@ final public class Http2Session : NSObject {
             disconnect(sendGoAwayFrame: false)
             print(error)
         }
+    }
+
+    // TODO: https://stackoverflow.com/questions/30624738/how-should-secure-transport-tls-be-used-with-bsd-sockets-in-swift/30733961#30733961
+    // https://github.com/OpenKitten/Lynx/blob/master/Sources/Lynx/Sockets/TCPSSLClient.swift
+    func sslReadFunc(conn: SSLConnectionRef, data: UnsafeMutableRawPointer, dataLength: UnsafeMutablePointer<Int>) -> OSStatus {
+        guard let inputStream = inputStream else { return errSecBadReq }
+
+        var buffer = [UInt8](repeating: 0, count: dataLength.pointee)
+        let bytesRead = inputStream.read(&buffer, maxLength: dataLength.pointee)
+
+        defer { dataLength.initialize(to: bytesRead) }
+
+        if bytesRead > 0 {
+            unprocessedBytes += buffer[0 ..< bytesRead]
+
+            let frame = try! AbstractFrame.decode(data: unprocessedBytes)
+            print(frame)
+        } else if bytesRead == 0 {
+            disconnect(sendGoAwayFrame: false)
+            return errSSLClosedGraceful
+        } else if let error = inputStream.streamError {
+            disconnect(sendGoAwayFrame: false)
+            print(error)
+        }
+
+        return errSecSuccess
+    }
+
+    func sslWriteFunc(conn: SSLConnectionRef, data: UnsafeRawPointer, dataLength: UnsafeMutablePointer<Int>) -> OSStatus {
+        return errSecSuccess
     }
 }
 
